@@ -164,7 +164,7 @@ class CollectionProxy(six.Iterator):
         except IndexError:
             operator_alias = 'exact'
         operator = dict(OPERATOR_ALIASES).get(operator_alias)
-        if not operator or not operator in dict(OPERATOR_ALIASES):
+        if not operator:
             raise ValueError("Incorrect filter operator.")
         query = {
             'field': field_name,
