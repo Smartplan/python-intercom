@@ -59,6 +59,12 @@ class CollectionProxy(six.Iterator):
         # The cursor used for pagination in order to fetch the next page of results.
         self.starting_after = None
 
+        # The default number of items returned in a single response
+        self.per_page = 50
+
+        # Pagination dictionary for getting the next page
+        self.pagination = None
+
     def __iter__(self):
         return self
 
@@ -90,6 +96,8 @@ class CollectionProxy(six.Iterator):
 
     def get_next_page(self):
         # get the next page of results
+        if self.search:
+            return self.get_page(self.next_page, self.finder_params)
         return self.get_page(self.next_page)
 
     def get_page(self, url, params={}):
@@ -100,8 +108,15 @@ class CollectionProxy(six.Iterator):
         if url is None:
             raise StopIteration
         if self.search:
+            if self.pagination:
+                pagination = self.pagination
+            else:
+                pagination = {
+                    'per_page': self.per_page,
+                }
+
             query = self._get_query_from_params(params)
-            response = self.client.post(url, {'query': query})
+            response = self.client.post(url, {'query': query, 'pagination': pagination})
         else:
             response = self.client.get(url, params)
 
@@ -126,12 +141,20 @@ class CollectionProxy(six.Iterator):
             paging_info = response["pages"]
             if paging_info.get("next"):
                 if isinstance(paging_info.get("next"), dict):
-                    query_dict = {
-                        'starting_after': paging_info.get("next").get('starting_after'),
-                        'page': paging_info.get("next").get('page')
-                    }
-                    query = urllib.parse.urlencode(query_dict)
-                    next_link = '{}?{}'.format(self.finder_url, query)
+                    if self.search:
+                        pagination = {
+                            'starting_after': paging_info.get("next").get('starting_after'),
+                            'per_page': self.per_page
+                        }
+                        self.pagination = pagination
+                        return self.finder_url
+                    else:
+                        query_dict = {
+                            'starting_after': paging_info.get("next").get('starting_after'),
+                            'page': paging_info.get("next").get('page')
+                        }
+                        query = urllib.parse.urlencode(query_dict)
+                        next_link = '{}?{}'.format(self.finder_url, query)
                 else:
                     next_parsed = urlparse(paging_info.get("next"))
                     next_link = '{}?{}'.format(next_parsed.path, next_parsed.query)
