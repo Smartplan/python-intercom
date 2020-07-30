@@ -87,5 +87,6 @@ error_codes = {
     'token_not_found': TokenNotFoundError,
     'token_revoked': TokenNotFoundError,
     'token_blocked': TokenNotFoundError,
-    'token_expired': TokenNotFoundError
+    'token_expired': TokenNotFoundError,
+    'company_not_found': ResourceNotFound
 }
